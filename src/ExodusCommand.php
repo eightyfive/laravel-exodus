@@ -16,10 +16,20 @@ class ExodusCommand extends Command
 
     public function handle(Exodus $exodus, Filesystem $files)
     {
-        $stub = file_get_contents(__DIR__ . '/stubs/migration.stub');
+        $stub = $files->get(__DIR__ . '/stubs/migration.stub');
 
-        $migrations = $this->load($files);
+        $migrations = $this->loadFile($files);
         $migrations = $exodus->parse($migrations);
+
+        // Lock file
+        $lock = database_path('migrations.lock');
+
+        if ($files->exists($lock)) {
+            $lock = $files->get($lock);
+            $lock = json_decode($lock, true);
+        } else {
+            $lock = [];
+        }
 
         $time = time();
 
@@ -30,46 +40,58 @@ class ExodusCommand extends Command
                 $migration['class_name'],
                 $content
             );
+
             $content = str_replace('{{up}}', $migration['up'], $content);
             $content = str_replace('{{down}}', $migration['down'], $content);
 
-            $filePath = $this->getMigrationPath($time, $migration['name']);
+            if (isset($lock[$migration['name']])) {
+                $fileName = $lock[$migration['name']];
+            } else {
+                $fileName = $this->getFileName($time, $migration['name']);
+                $time = $time + 1;
+            }
+
+            $filePath = database_path('migrations/' . $fileName . '.php');
+
             $files->put($filePath, $content);
 
-            $time = $time + 1;
+            $lock[$migration['name']] = $fileName;
         }
+
+        // Save lock
+        $content = json_encode($lock, JSON_PRETTY_PRINT);
+        $files->put(database_path('migrations.lock'), $content);
     }
 
-    protected function getMigrationPath(int $time, string $name)
+    protected function getFileName(int $time, string $name)
     {
-        return database_path(
-            'migrations/' . date('Y_m_d_His', $time) . '_' . $name . '.php'
-        );
+        return date('Y_m_d_His', $time) . '_' . $name . '.php';
     }
 
-    protected function load(Filesystem $files)
-    {
-        $file = $this->getMigrationsPath($files);
-        $config = Config::load($file);
-
-        return $config->all();
-    }
-
-    protected function getMigrationsPath(Filesystem $files)
+    protected function loadFile(Filesystem $files)
     {
         $exts = ['yaml', 'json', 'php', 'yml'];
+        $file = null;
 
         foreach ($exts as $ext) {
-            $path = database_path("migrations.{$ext}");
+            $file = database_path("migrations.{$ext}");
 
-            if ($files->exists($path)) {
-                return $path;
+            if ($files->exists($file)) {
+                break;
+            } else {
+                $file = null;
             }
         }
 
-        $exts = implode('|', $exts);
+        if (!$file) {
+            $exts = implode('|', $exts);
 
-        $this->error("No database/migrations.({$exts}) file found");
-        die();
+            $this->error("No database/migrations.({$exts}) file found");
+            die();
+        }
+
+        $config = Config::load($file);
+
+        return $config->all();
     }
 }

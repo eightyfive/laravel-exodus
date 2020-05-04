@@ -11,14 +11,12 @@ class Exodus
 
         foreach ($migrations as $name => $migration) {
             if ($this->isCreate($migration)) {
-                array_push(
-                    $normalized,
-                    $this->createTableSchema($name, $migration)
-                );
+                $normalized[] = $this->getCreateSchema($name, $migration);
             } else {
-                array_push(
-                    $normalized,
-                    $this->updateTableSchema($name, $migration)
+                $normalized[] = $this->getUpdateSchema(
+                    $name,
+                    $migration['up'],
+                    $migration['down']
                 );
             }
         }
@@ -36,16 +34,13 @@ class Exodus
         return !$isUpdate;
     }
 
-    protected function createTableSchema(string $table, array $columns)
+    protected function getCreateSchema(string $table, array $columns)
     {
         // Up schema
-        $up = $this->getSchema('create', $table, $this->parseColumns($columns));
+        $up = $this->getSchema('create', $table, $columns);
 
         // Down schema
-        $lines = [
-            $this->getLine(sprintf("Schema::dropIfExists('%s')", $table)),
-        ];
-        $down = implode(PHP_EOL, $lines);
+        $down = $this->getLine(sprintf("Schema::dropIfExists('%s')", $table));
 
         $name = $this->getCreateName($table);
 
@@ -57,23 +52,20 @@ class Exodus
         ];
     }
 
-    protected function updateTableSchema(string $table, array $migration)
+    protected function getCreateName($name)
+    {
+        return 'create_' . $name . '_table';
+    }
+
+    protected function getUpdateSchema(string $table, array $up, array $down)
     {
         list($table, $name) = $this->getUpdateNames($table);
 
         // Up schema
-        $up = $this->getSchema(
-            'table',
-            $table,
-            $this->parseColumns($migration['up'])
-        );
+        $up = $this->getSchema('table', $table, $up);
 
         // Down schema
-        $down = $this->getSchema(
-            'table',
-            $table,
-            $this->parseColumns($migration['down'])
-        );
+        $down = $this->getSchema('table', $table, $down);
 
         return [
             'name' => $name,
@@ -81,6 +73,29 @@ class Exodus
             'up' => $up,
             'down' => $down,
         ];
+    }
+
+    protected function getUpdateNames($name)
+    {
+        list($rest, $table) = \explode('@', $name);
+
+        if (!$table) {
+            return [$name, $name];
+        }
+
+        if (strpos($rest, 'add_') === 0) {
+            $dir = 'to';
+        } elseif (strpos($rest, 'remove_') === 0) {
+            $dir = 'from';
+        }
+
+        if (isset($dir)) {
+            $name = $rest . '_' . $dir . '_' . $table . '_table';
+        } else {
+            $name = $rest . '_' . $table . '_table';
+        }
+
+        return [$table, $name];
     }
 
     protected function parseColumns(array $columns)
@@ -133,40 +148,21 @@ class Exodus
         return $this->getLine(implode('->', $column), 3);
     }
 
-    protected function getCreateName($name)
+    protected function getSchema(string $action, string $table, array $columns)
     {
-        return 'create_' . $name . '_table';
-    }
+        $lines = $this->parseColumns($columns);
 
-    protected function getUpdateNames($name)
-    {
-        list($rest, $table) = \explode('@', $name);
+        // Opening line
+        array_unshift(
+            $lines,
+            sprintf(
+                "Schema::" . $action . "('%s', function (Blueprint \$table) {",
+                $table
+            )
+        );
 
-        if (!$table) {
-            return [$name, $name];
-        }
-
-        if (strpos($rest, 'add_') === 0) {
-            $dir = 'to';
-        } elseif (strpos($rest, 'remove_') === 0) {
-            $dir = 'from';
-        }
-
-        if (isset($dir)) {
-            $name = $rest . '_' . $dir . '_' . $table . '_table';
-        } else {
-            $name = $rest . '_' . $table . '_table';
-        }
-
-        return [$table, $name];
-    }
-
-    protected function getSchema(string $type, string $table, array $schema)
-    {
-        $lines = [];
-        $lines[] = $this->openLine($type, $table);
-        $lines = array_merge($lines, $schema);
-        $lines[] = $this->closeLine();
+        // Closing line
+        array_push($lines, $this->getLine("})", 2));
 
         return implode(PHP_EOL, $lines);
     }
@@ -179,18 +175,5 @@ class Exodus
     protected function getLine(string $line, int $tabs = 0)
     {
         return str_repeat(' ', $tabs * 4) . $line . ';';
-    }
-
-    protected function openLine(string $type, string $table)
-    {
-        return sprintf(
-            "Schema::" . $type . "('%s', function (Blueprint \$table) {",
-            $table
-        );
-    }
-
-    protected function closeLine()
-    {
-        return $this->getLine("})", 2);
     }
 }
