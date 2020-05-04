@@ -35,11 +35,12 @@ class ExodusCommand extends Command
 
             $filePath = $this->getMigrationPath($time, $migration['name']);
             $files->put($filePath, $content);
+
             $time = $time + 1;
         }
     }
 
-    protected function getMigrationPath(int $time, $name)
+    protected function getMigrationPath(int $time, string $name)
     {
         return database_path(
             'migrations/' . date('Y_m_d_His', $time) . '_' . $name . '.php'
@@ -48,15 +49,15 @@ class ExodusCommand extends Command
 
     protected function load(Filesystem $files)
     {
-        $path = $this->getMigrationsPath($files);
-        $config = Config::load($path);
+        $file = $this->getMigrationsPath($files);
+        $config = Config::load($file);
 
         return $config->all();
     }
 
     protected function getMigrationsPath(Filesystem $files)
     {
-        $exts = ['json', 'php', 'yaml', 'yml'];
+        $exts = ['yaml', 'json', 'php', 'yml'];
 
         foreach ($exts as $ext) {
             $path = database_path("migrations.{$ext}");
