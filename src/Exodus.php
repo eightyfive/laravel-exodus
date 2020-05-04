@@ -52,9 +52,9 @@ class Exodus
         ];
     }
 
-    protected function getCreateName($name)
+    protected function getCreateName(string $table)
     {
-        return 'create_' . $name . '_table';
+        return 'create_' . $table . '_table';
     }
 
     protected function getUpdateSchema(string $table, array $up, array $down)
@@ -75,38 +75,44 @@ class Exodus
         ];
     }
 
-    protected function getUpdateNames($name)
+    protected function getUpdateNames(string $name)
     {
         list($rest, $table) = \explode('@', $name);
 
         if (!$table) {
-            return [$name, $name];
+            throw new \Exception(
+                'You must specify a @table name in update migration name'
+            );
         }
+
+        // Real "update" migration name
+        $name = [$rest];
 
         if (strpos($rest, 'add_') === 0) {
-            $dir = 'to';
+            // add_<column>_to_
+            $name[] = 'to';
         } elseif (strpos($rest, 'remove_') === 0) {
-            $dir = 'from';
+            // remove_<column>_from_
+            $name[] = 'from';
         }
 
-        if (isset($dir)) {
-            $name = $rest . '_' . $dir . '_' . $table . '_table';
-        } else {
-            $name = $rest . '_' . $table . '_table';
-        }
+        // add_<column>_to_<table>_
+        $name[] = $table;
+        // add_<column>_to_<table>_table
+        $name[] = 'table';
 
-        return [$table, $name];
+        return [$table, implode('_', $name)];
     }
 
     protected function parseColumns(array $columns)
     {
-        $schema = [];
+        $normalized = [];
 
         foreach ($columns as $name => $modifiers) {
-            array_push($schema, $this->parseColumn($name, $modifiers));
+            $normalized[] = $this->parseColumn($name, $modifiers);
         }
 
-        return $schema;
+        return $normalized;
     }
 
     protected function parseColumn(string $name, $modifiers)
