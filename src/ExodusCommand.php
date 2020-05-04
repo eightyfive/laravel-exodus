@@ -21,6 +21,8 @@ class ExodusCommand extends Command
         $migrations = $this->load($files);
         $migrations = $exodus->parse($migrations);
 
+        $time = time();
+
         foreach ($migrations as $migration) {
             $content = $stub;
             $content = str_replace(
@@ -31,15 +33,16 @@ class ExodusCommand extends Command
             $content = str_replace('{{up}}', $migration['up'], $content);
             $content = str_replace('{{down}}', $migration['down'], $content);
 
-            $filePath = $this->getMigrationPath($migration['name']);
+            $filePath = $this->getMigrationPath($time, $migration['name']);
             $files->put($filePath, $content);
+            $time = $time + 1;
         }
     }
 
-    protected function getMigrationPath($name)
+    protected function getMigrationPath(int $time, $name)
     {
         return database_path(
-            'migrations/' . date('Y_m_d_His') . '_' . $name . '.php'
+            'migrations/' . date('Y_m_d_His', $time) . '_' . $name . '.php'
         );
     }
 

@@ -10,7 +10,7 @@ class Exodus
         $normalized = [];
 
         foreach ($migrations as $name => $migration) {
-            if ($this->isTable($migration)) {
+            if ($this->isCreate($migration)) {
                 array_push(
                     $normalized,
                     $this->createTableSchema($name, $migration)
@@ -26,14 +26,14 @@ class Exodus
         return $normalized;
     }
 
-    protected function isTable(array $migration)
+    protected function isCreate(array $migration)
     {
-        $isMigration =
+        $isUpdate =
             count($migration) === 2 &&
             isset($migration['up']) &&
             isset($migration['down']);
 
-        return !$isMigration;
+        return !$isUpdate;
     }
 
     protected function createTableSchema(string $name, array $attributes)
@@ -121,10 +121,12 @@ class Exodus
         // Column type
         $type = array_shift($modifiers);
 
-        if (Str::contains($type, '(')) {
-            $type = \str_replace('(', '("' . $name . '", ');
+        if ($type === 'dropForeign') {
+            $type = $type . "(['" . $name . "'])";
+        } elseif (Str::contains($type, '(')) {
+            $type = \str_replace($type, '(', "('" . $name . "', ");
         } else {
-            $type = $type . '("' . $name . '")';
+            $type = $type . "('" . $name . "')";
         }
 
         // Column definition
@@ -149,7 +151,23 @@ class Exodus
 
     protected function getUpdateName($name)
     {
-        return $name;
+        list($rest, $table) = \explode('@', $name);
+
+        if (!$table) {
+            return $name;
+        }
+
+        if (strpos($rest, 'add_') === 0) {
+            $dir = 'to';
+        } elseif (strpos($rest, 'remove_') === 0) {
+            $dir = 'from';
+        }
+
+        if (isset($dir)) {
+            return $rest . '_' . $dir . '_' . $table . '_table';
+        }
+
+        return $rest . '_' . $table . '_table';
     }
 
     protected function getClassName(string $name)
