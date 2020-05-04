@@ -3,6 +3,7 @@ namespace Eyf\Exodus;
 
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\Str;
 use Noodlehaus\Config;
 
 use Eyf\Exodus\Exodus;
@@ -15,37 +16,56 @@ class ExodusCommand extends Command
 
     public function handle(Exodus $exodus, Filesystem $files)
     {
+        $stub = file_get_contents(__DIR__ . '/stubs/migration.stub');
+
         $migrations = $this->load($files);
         $migrations = $exodus->parse($migrations);
 
-        foreach ($migrations as $name => $fields) {
-            //
+        foreach ($migrations as $migration) {
+            $content = $stub;
+            $content = str_replace(
+                '{{class}}',
+                $migration['class_name'],
+                $content
+            );
+            $content = str_replace('{{up}}', $migration['up'], $content);
+            $content = str_replace('{{down}}', $migration['down'], $content);
+
+            $filePath = $this->getMigrationPath($migration['name']);
+            $this->files->put($filePath, $content);
         }
+    }
+
+    protected function getMigrationPath($name)
+    {
+        return database_path(
+            'migrations/' . date('Y_m_d_His') . '_' . $name . '.php'
+        );
     }
 
     protected function load(Filesystem $files)
     {
-        $filePath = $this->getFilePath($files);
-        $config = Config::load($filePath);
+        $path = $this->getMigrationsPath($files);
+        $config = Config::load($path);
 
         return $config->all();
     }
 
-    protected function getFilePath(Filesystem $files)
+    protected function getMigrationsPath(Filesystem $files)
     {
-        $extensions = ['json', 'php', 'yaml', 'yml'];
+        $exts = ['json', 'php', 'yaml', 'yml'];
 
-        foreach ($extensions as $ext) {
-            $filePath = database_path("migrations.{$ext}");
+        foreach ($exts as $ext) {
+            $path = database_path("migrations.{$ext}");
 
-            if ($files->exists($filePath)) {
-                return $filePath;
+            if ($files->exists($path)) {
+                return $path;
             }
         }
 
-        $extensions = implode('|', $extensions);
+        $exts = implode('|', $exts);
 
-        $this->error("No database/migrations.({$extensions}) file found");
+        $this->error("No database/migrations.({$exts}) file found");
         die();
     }
 }
