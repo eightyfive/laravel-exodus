@@ -36,14 +36,10 @@ class Exodus
         return !$isUpdate;
     }
 
-    protected function createTableSchema(string $table, array $attributes)
+    protected function createTableSchema(string $table, array $columns)
     {
         // Up schema
-        $up = $this->getSchema(
-            'create',
-            $table,
-            $this->parseColumns($attributes)
-        );
+        $up = $this->getSchema('create', $table, $this->parseColumns($columns));
 
         // Down schema
         $lines = [
