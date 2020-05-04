@@ -47,12 +47,12 @@ class Exodus
                 $name
             )
         );
-        array_push($lines, "});");
-        $up = implode('\\n', $lines);
+        array_push($lines, $this->getLine("})", 2));
+        $up = implode(PHP_EOL, $lines);
 
         // Down schema
-        $lines = [sprintf("Schema::dropIfExists('%s');", $name)];
-        $down = implode('\\n', $lines);
+        $lines = [$this->getLine(sprintf("Schema::dropIfExists('%s')", $name))];
+        $down = implode(PHP_EOL, $lines);
 
         $name = $this->getCreateName($name);
 
@@ -72,8 +72,8 @@ class Exodus
             $lines,
             sprintf("Schema::table('%s', function (Blueprint \$table) {", $name)
         );
-        array_push($lines, "});");
-        $up = implode('\\n', $lines);
+        array_push($lines, $this->getLine("})", 2));
+        $up = implode(PHP_EOL, $lines);
 
         // Down schema
         $lines = $this->parseColumns($migration['down']);
@@ -81,8 +81,8 @@ class Exodus
             $lines,
             sprintf("Schema::table('%s', function (Blueprint \$table) {", $name)
         );
-        array_push($lines, "});");
-        $down = implode('\\n', $lines);
+        array_push($lines, $this->getLine("})", 2));
+        $down = implode(PHP_EOL, $lines);
 
         $name = $this->getUpdateName($name);
 
@@ -108,7 +108,10 @@ class Exodus
     protected function parseColumn(string $name, $modifiers)
     {
         if ($modifiers === true) {
-            return Str::contains($name, '(') ? $name : $name . '()';
+            return $this->getLine(
+                '$table->' . (Str::contains($name, '(') ? $name : $name . '()'),
+                3
+            );
         }
 
         if (!is_array($modifiers)) {
@@ -134,8 +137,9 @@ class Exodus
         }, $modifiers);
 
         array_unshift($column, $type);
+        array_unshift($column, '$table');
 
-        return implode('->', $column);
+        return $this->getLine(implode('->', $column), 3);
     }
 
     protected function getCreateName($name)
@@ -151,5 +155,10 @@ class Exodus
     protected function getClassName(string $name)
     {
         return ucwords(Str::camel($name));
+    }
+
+    protected function getLine(string $line, int $tabs = 0)
+    {
+        return str_repeat(' ', $tabs * 4) . $line . ';';
     }
 }

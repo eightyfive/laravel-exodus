@@ -32,7 +32,7 @@ class ExodusCommand extends Command
             $content = str_replace('{{down}}', $migration['down'], $content);
 
             $filePath = $this->getMigrationPath($migration['name']);
-            $this->files->put($filePath, $content);
+            $files->put($filePath, $content);
         }
     }
 
