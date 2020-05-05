@@ -13,7 +13,7 @@ class Exodus
         $normalized = [];
 
         foreach ($migrations as $name => $migration) {
-            list($action, $table) = $this->getAction($name);
+            list($action, $table) = $this->splitName($name);
 
             if ($this->isCustom($migration)) {
                 $normalized[] = $this->getCustomSchema(
@@ -36,7 +36,7 @@ class Exodus
         return $normalized;
     }
 
-    protected function getAction(string $name)
+    protected function splitName(string $name)
     {
         if (\strpos($name, '@') === false) {
             return [null, $name];
