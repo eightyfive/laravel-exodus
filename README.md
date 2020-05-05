@@ -66,7 +66,7 @@ As you may have noticed if you ran a similar example as above, the migration fil
 
 This is because Exodus keeps track of file names in the `database/migrations.lock` file (to commit in your repository). While in DEV you want to iterate fast through different table schemas but do not want to create a new migration file for every column change.
 
-_Note_: You obviously need to run `migrate:refresh (--seed)` for the changes to be reflected in your database.
+_Note_: When you edit a YAML migration, you obviously need to run `migrate:refresh (--seed)` for the changes to be reflected in your database.
 
 ### The `force` option
 
