@@ -10,7 +10,7 @@ use Eyf\Exodus\Exodus;
 
 class ExodusCommand extends Command
 {
-    protected $signature = 'exode {--seed}';
+    protected $signature = 'make:migrations {--refresh} {--seed}';
 
     protected $description = 'Make & refresh migrations based on `database/migrations.(yaml|json|php)` file';
 
