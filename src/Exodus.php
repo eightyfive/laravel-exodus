@@ -184,7 +184,7 @@ class Exodus
         if ($type === 'dropForeign') {
             $type = $type . "(['" . $name . "'])";
         } elseif (Str::contains($type, '(')) {
-            $type = \str_replace($type, '(', "('" . $name . "', ");
+            $type = \str_replace('(', "('" . $name . "', ", $type);
         } else {
             $type = $type . "('" . $name . "')";
         }
