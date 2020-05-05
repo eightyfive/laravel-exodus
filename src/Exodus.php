@@ -15,7 +15,12 @@ class Exodus
         foreach ($migrations as $name => $migration) {
             list($action, $table) = $this->splitName($name);
 
-            if ($this->isCustom($migration)) {
+            if ($this->isPivot($name)) {
+                $normalized[] = $this->getPivotSchema(
+                    $this->getPivotTables($name),
+                    $migration
+                );
+            } elseif ($this->isCustom($migration)) {
                 $normalized[] = $this->getCustomSchema(
                     $name,
                     $migration['table'],
@@ -29,7 +34,7 @@ class Exodus
                     $migration
                 );
             } else {
-                $normalized[] = $this->getCreateSchema($name, $migration);
+                $normalized[] = $this->getCreateSchema($table, $migration);
             }
         }
 
@@ -145,6 +150,53 @@ class Exodus
 
         // Down schema
         $down = $this->getSchema('table', $table, $down);
+
+        return [
+            'name' => $name,
+            'class_name' => $this->getClassName($name),
+            'up' => $up,
+            'down' => $down,
+        ];
+    }
+
+    protected function isPivot(string $name)
+    {
+        return preg_match("/@\w+\s@\w+/", $name);
+    }
+
+    protected function getPivotTables(string $name)
+    {
+        $tables = \explode(' ', $name);
+        $tables = array_map(function ($table) {
+            return \str_replace('@', '', $table);
+        }, $tables);
+
+        \sort($tables);
+
+        return $tables;
+    }
+
+    protected function getPivotSchema(array $tables, array $columns)
+    {
+        // Table name
+        $models = array_map(function ($name) {
+            return Str::singular($name);
+        }, $tables);
+
+        $table = \implode('_', $models);
+
+        // Up schema
+        $pivot = [];
+        $pivot["{$models[0]}_id"] = 'foreignId.index.constrained';
+        $pivot["{$models[1]}_id"] = 'foreignId.index.constrained';
+        $pivot["primary(['{$models[0]}_id', '{$models[1]}_id'])"] = true;
+
+        $up = $this->getSchema('create', $table, array_merge($pivot, $columns));
+
+        // Down schema
+        $down = $this->getLine(sprintf(static::SCHEMA_DROP, $table));
+
+        $name = 'create_' . $table . '_pivot_table';
 
         return [
             'name' => $name,
