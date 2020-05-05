@@ -5,6 +5,9 @@ use Illuminate\Support\Str;
 
 class Exodus
 {
+    const SCHEMA = "Schema::%s('%s', function (Blueprint \$table) {";
+    const SCHEMA_DROP = "Schema::dropIfExists('%s')";
+
     public function parse(array $migrations)
     {
         $normalized = [];
@@ -68,7 +71,7 @@ class Exodus
         $up = $this->getSchema('create', $table, $columns);
 
         // Down schema
-        $down = $this->getLine(sprintf("Schema::dropIfExists('%s')", $table));
+        $down = $this->getLine(sprintf(static::SCHEMA_DROP, $table));
 
         $name = 'create_' . $table . '_table';
 
@@ -206,13 +209,7 @@ class Exodus
         $lines = $this->parseColumns($columns);
 
         // Opening line
-        array_unshift(
-            $lines,
-            sprintf(
-                "Schema::" . $action . "('%s', function (Blueprint \$table) {",
-                $table
-            )
-        );
+        array_unshift($lines, sprintf(static::SCHEMA, $action, $table));
 
         // Closing line
         array_push($lines, $this->getLine("})", 2));
