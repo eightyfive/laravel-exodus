@@ -44,26 +44,24 @@ class ExodusCommand extends Command
 
         foreach ($migrations as $migration) {
             $content = $stub;
-            $content = str_replace(
-                '{{class}}',
-                $migration['class_name'],
-                $content
-            );
+            $content = str_replace('{{class}}', $migration['class'], $content);
 
             $content = str_replace('{{up}}', $migration['up'], $content);
             $content = str_replace('{{down}}', $migration['down'], $content);
 
-            if (isset($lock[$migration['name']])) {
-                $fileName = $lock[$migration['name']];
+            $name = $migration['name'];
+
+            if (isset($lock[$name])) {
+                $fileName = $lock[$name];
             } else {
-                $fileName = $this->getFileName($time, $migration['name']);
+                $fileName = $this->getFileName($time, $name);
                 $time = $time + 1;
             }
 
             $file = database_path('migrations/' . $fileName);
             $files->put($file, $content);
 
-            $lock[$migration['name']] = $fileName;
+            $lock[$name] = $fileName;
         }
 
         // Save lock

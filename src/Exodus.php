@@ -82,7 +82,7 @@ class Exodus
 
         return [
             'name' => $name,
-            'class_name' => $this->getClassName($name),
+            'class' => $this->getClassName($name),
             'up' => $up,
             'down' => $down,
         ];
@@ -118,7 +118,7 @@ class Exodus
 
         return [
             'name' => $name,
-            'class_name' => $this->getClassName($name),
+            'class' => $this->getClassName($name),
             'up' => $up,
             'down' => $down,
         ];
@@ -153,7 +153,7 @@ class Exodus
 
         return [
             'name' => $name,
-            'class_name' => $this->getClassName($name),
+            'class' => $this->getClassName($name),
             'up' => $up,
             'down' => $down,
         ];
@@ -200,7 +200,7 @@ class Exodus
 
         return [
             'name' => $name,
-            'class_name' => $this->getClassName($name),
+            'class' => $this->getClassName($name),
             'up' => $up,
             'down' => $down,
         ];
