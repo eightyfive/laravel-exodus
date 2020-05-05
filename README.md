@@ -4,7 +4,7 @@ Exodus helps you write Laravel migrations as an `array` (think YAML).
 ## Install
 
 ```bash
-composer require eyf/laravel-autoroute
+composer require eyf/laravel-exodus
 ```
 
 ## Usage
