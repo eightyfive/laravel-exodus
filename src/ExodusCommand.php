@@ -10,7 +10,7 @@ use Eyf\Exodus\Exodus;
 
 class ExodusCommand extends Command
 {
-    protected $signature = 'make:migrations {--refresh} {--seed}';
+    protected $signature = 'make:migrations {--force}';
 
     protected $description = 'Make & refresh migrations based on `database/migrations.(yaml|json|php)` file';
 
@@ -28,6 +28,15 @@ class ExodusCommand extends Command
             $lock = $files->get($lock);
             $lock = json_decode($lock, true);
         } else {
+            $lock = [];
+        }
+
+        if ($this->option('force')) {
+            $fileNames = array_map(function ($fileName) {
+                return \database_path('migrations/' . $fileName);
+            }, array_values($lock));
+
+            $files->delete($fileNames);
             $lock = [];
         }
 
@@ -51,9 +60,8 @@ class ExodusCommand extends Command
                 $time = $time + 1;
             }
 
-            $filePath = database_path('migrations/' . $fileName . '.php');
-
-            $files->put($filePath, $content);
+            $file = database_path('migrations/' . $fileName);
+            $files->put($file, $content);
 
             $lock[$migration['name']] = $fileName;
         }
