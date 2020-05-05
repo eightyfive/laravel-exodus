@@ -10,28 +10,56 @@ class Exodus
         $normalized = [];
 
         foreach ($migrations as $name => $migration) {
-            if ($this->isCreate($migration)) {
-                $normalized[] = $this->getCreateSchema($name, $migration);
-            } else {
-                $normalized[] = $this->getUpdateSchema(
+            list($action, $table) = $this->getAction($name);
+
+            if ($this->isCustom($migration)) {
+                $normalized[] = $this->getCustomSchema(
                     $name,
+                    $migration['table'],
                     $migration['up'],
                     $migration['down']
                 );
+            } elseif ($action) {
+                $normalized[] = $this->getActionSchema(
+                    $action,
+                    $table,
+                    $migration
+                );
+            } else {
+                $normalized[] = $this->getCreateSchema($name, $migration);
             }
         }
 
         return $normalized;
     }
 
-    protected function isCreate(array $migration)
+    protected function getAction(string $name)
     {
-        $isUpdate =
-            count($migration) === 2 &&
+        if (\strpos($name, '@') === false) {
+            return [null, $name];
+        }
+
+        $action = \explode('@', $name);
+
+        if (count($action) !== 2) {
+            return [null, $name];
+        }
+
+        $valid = $action[0] === 'add' || $action[0] === 'remove';
+
+        if (!$valid) {
+            return [null, $name];
+        }
+
+        return $action;
+    }
+
+    protected function isCustom(array $migration)
+    {
+        return count($migration) === 3 &&
+            isset($migration['table']) &&
             isset($migration['up']) &&
             isset($migration['down']);
-
-        return !$isUpdate;
     }
 
     protected function getCreateSchema(string $table, array $columns)
@@ -42,7 +70,7 @@ class Exodus
         // Down schema
         $down = $this->getLine(sprintf("Schema::dropIfExists('%s')", $table));
 
-        $name = $this->getCreateName($table);
+        $name = 'create_' . $table . '_table';
 
         return [
             'name' => $name,
@@ -52,15 +80,63 @@ class Exodus
         ];
     }
 
-    protected function getCreateName(string $table)
-    {
-        return 'create_' . $table . '_table';
+    protected function getActionSchema(
+        string $action,
+        string $table,
+        array $columns
+    ) {
+        $drops = $this->getDropColumns($columns);
+
+        $up = $this->getSchema(
+            'table',
+            $table,
+            $action === 'add' ? $columns : $drops
+        );
+
+        $down = $this->getSchema(
+            'table',
+            $table,
+            $action === 'add' ? $drops : $columns
+        );
+
+        // Migration name
+        $name = array_merge([$action], array_keys($columns), [
+            $action === 'add' ? 'to' : 'from',
+            $table,
+            'table',
+        ]);
+
+        $name = \implode('_', $name);
+
+        return [
+            'name' => $name,
+            'class_name' => $this->getClassName($name),
+            'up' => $up,
+            'down' => $down,
+        ];
     }
 
-    protected function getUpdateSchema(string $table, array $up, array $down)
+    protected function getDropColumns($columns)
     {
-        list($table, $name) = $this->getUpdateNames($table);
+        $drops = [];
 
+        foreach ($columns as $name => $modifiers) {
+            if (strpos($modifiers, 'foreignId') !== false) {
+                $drops[$name] = 'dropForeign';
+            } else {
+                $drops[$name] = 'dropColumn';
+            }
+        }
+
+        return $drops;
+    }
+
+    protected function getCustomSchema(
+        string $name,
+        string $table,
+        array $up,
+        array $down
+    ) {
         // Up schema
         $up = $this->getSchema('table', $table, $up);
 
@@ -73,35 +149,6 @@ class Exodus
             'up' => $up,
             'down' => $down,
         ];
-    }
-
-    protected function getUpdateNames(string $name)
-    {
-        list($rest, $table) = \explode('@', $name);
-
-        if (!$table) {
-            throw new \Exception(
-                'You must specify a @table name in update migration name'
-            );
-        }
-
-        // Real "update" migration name
-        $name = [$rest];
-
-        if (strpos($rest, 'add_') === 0) {
-            // add_<column>_to_
-            $name[] = 'to';
-        } elseif (strpos($rest, 'remove_') === 0) {
-            // remove_<column>_from_
-            $name[] = 'from';
-        }
-
-        // add_<column>_to_<table>_
-        $name[] = $table;
-        // add_<column>_to_<table>_table
-        $name[] = 'table';
-
-        return [$table, implode('_', $name)];
     }
 
     protected function parseColumns(array $columns)
