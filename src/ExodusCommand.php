@@ -14,18 +14,27 @@ class ExodusCommand extends Command
 
     protected $description = 'Make & refresh migrations based on `database/migrations.(yaml|json|php)` file';
 
-    public function handle(Exodus $exodus, Filesystem $files)
-    {
-        $stub = $files->get(__DIR__ . '/stubs/migration.stub');
+    protected $exodus;
+    protected $files;
 
-        $migrations = $this->loadFile($files);
-        $migrations = $exodus->parse($migrations);
+    public function __construct(Exodus $exodus, Filesystem $files)
+    {
+        $this->exodus = $exodus;
+        $this->files = $files;
+    }
+
+    public function handle()
+    {
+        $stub = $this->files->get(__DIR__ . '/stubs/migration.stub');
+
+        $migrations = $this->loadFile();
+        $migrations = $this->exodus->parse($migrations);
 
         // Lock file
         $lock = database_path('migrations.lock');
 
-        if ($files->exists($lock)) {
-            $lock = $files->get($lock);
+        if ($this->files->exists($lock)) {
+            $lock = $this->files->get($lock);
             $lock = json_decode($lock, true);
         } else {
             $lock = [];
@@ -36,7 +45,7 @@ class ExodusCommand extends Command
                 return \database_path('migrations/' . $fileName);
             }, array_values($lock));
 
-            $files->delete($fileNames);
+            $this->files->delete($fileNames);
             $lock = [];
         }
 
@@ -59,14 +68,14 @@ class ExodusCommand extends Command
             }
 
             $file = database_path('migrations/' . $fileName);
-            $files->put($file, $content);
+            $this->files->put($file, $content);
 
             $lock[$name] = $fileName;
         }
 
         // Save lock
         $content = json_encode($lock, JSON_PRETTY_PRINT);
-        $files->put(database_path('migrations.lock'), $content);
+        $this->files->put(database_path('migrations.lock'), $content);
     }
 
     protected function getFileName(int $time, string $name)
@@ -74,7 +83,7 @@ class ExodusCommand extends Command
         return date('Y_m_d_His', $time) . '_' . $name . '.php';
     }
 
-    protected function loadFile(Filesystem $files)
+    protected function loadFile()
     {
         $exts = ['yaml', 'json', 'php', 'yml'];
         $file = null;
@@ -82,7 +91,7 @@ class ExodusCommand extends Command
         foreach ($exts as $ext) {
             $file = database_path("migrations.{$ext}");
 
-            if ($files->exists($file)) {
+            if ($this->files->exists($file)) {
                 break;
             } else {
                 $file = null;
