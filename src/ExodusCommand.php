@@ -24,26 +24,31 @@ class ExodusCommand extends Command
 
     public function handle()
     {
-        $migrations = Yaml::parseFile(database_path('migrations.yaml'));
-        $migrations = $this->exodus->parse($migrations);
-
-        // Lock file
-        $lock = $this->getLock();
+        // Get lock
+        $lock = $this->getLock(database_path('migrations.lock'));
 
         if ($this->option('force')) {
             $this->deleteFiles(array_values($lock));
             $lock = [];
         }
 
+        // Parse migrations definition
+        $definition = Yaml::parseFile(database_path('migrations.yaml'));
+        $migrations = $this->exodus->parse($definition);
+
         $time = time();
         $stub = $this->files->get(__DIR__ . '/stubs/migration.stub');
 
         foreach ($migrations as $migration) {
-            $content = $stub;
-            $content = str_replace('{{class}}', $migration['class'], $content);
+            $contents = $stub;
+            $contents = str_replace(
+                '{{class}}',
+                $migration['class'],
+                $contents
+            );
 
-            $content = str_replace('{{up}}', $migration['up'], $content);
-            $content = str_replace('{{down}}', $migration['down'], $content);
+            $contents = str_replace('{{up}}', $migration['up'], $contents);
+            $contents = str_replace('{{down}}', $migration['down'], $contents);
 
             $name = $migration['name'];
 
@@ -52,23 +57,26 @@ class ExodusCommand extends Command
             } else {
                 $fileName = $this->makeFileName($time, $name);
                 $time = $time + 1;
+
+                $lock[$name] = $fileName;
             }
 
-            $file = database_path('migrations/' . $fileName);
-            $this->files->put($file, $content);
-
-            $lock[$name] = $fileName;
+            // Save migration file
+            $this->files->put(
+                database_path('migrations/' . $fileName),
+                $contents
+            );
         }
 
         // Save lock
-        $content = json_encode($lock, JSON_PRETTY_PRINT);
-        $this->files->put(database_path('migrations.lock'), $content);
+        $this->files->put(
+            database_path('migrations.lock'),
+            json_encode($lock, JSON_PRETTY_PRINT)
+        );
     }
 
-    protected function getLock()
+    protected function getLock(string $path)
     {
-        $path = database_path('migrations.lock');
-
         if ($this->files->exists($path)) {
             $contents = $this->files->get($path);
 
@@ -81,7 +89,7 @@ class ExodusCommand extends Command
     protected function deleteFiles(array $fileNames)
     {
         $filePaths = array_map(function (string $fileName) {
-            return \database_path('migrations/' . $fileName);
+            return database_path('migrations/' . $fileName);
         }, $fileNames);
 
         $this->files->delete($filePaths);
