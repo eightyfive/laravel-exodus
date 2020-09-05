@@ -50,7 +50,7 @@ class ExodusCommand extends Command
             if (isset($lock[$name])) {
                 $fileName = $lock[$name];
             } else {
-                $fileName = $this->getFileName($time, $name);
+                $fileName = $this->makeFileName($time, $name);
                 $time = $time + 1;
             }
 
@@ -87,7 +87,7 @@ class ExodusCommand extends Command
         $this->files->delete($filePaths);
     }
 
-    protected function getFileName(int $time, string $name)
+    protected function makeFileName(int $time, string $name)
     {
         return date('Y_m_d_His', $time) . '_' . $name . '.php';
     }
