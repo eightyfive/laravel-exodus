@@ -11,7 +11,7 @@ class ExodusCommand extends Command
 {
     protected $signature = 'make:migrations {--force}';
 
-    protected $description = 'Make & refresh migrations based on `database/migrations.(yaml|json|php)` file';
+    protected $description = 'Make migrations files based on `database/migrations.yaml` file';
 
     protected $exodus;
     protected $files;
