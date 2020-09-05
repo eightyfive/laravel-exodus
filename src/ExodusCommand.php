@@ -17,6 +17,8 @@ class ExodusCommand extends Command
 
     public function __construct(Exodus $exodus, Filesystem $files)
     {
+        parent::__construct();
+
         $this->exodus = $exodus;
         $this->files = $files;
     }
