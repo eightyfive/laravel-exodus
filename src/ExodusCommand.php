@@ -24,24 +24,18 @@ class ExodusCommand extends Command
 
     public function handle()
     {
-        $migrations = Yaml::parseFile(database_path("migrations.yaml"));
+        $migrations = Yaml::parseFile(database_path('migrations.yaml'));
         $migrations = $this->exodus->parse($migrations);
 
         // Lock file
-        $lock = database_path('migrations.lock');
-
-        if ($this->files->exists($lock)) {
-            $lock = $this->files->get($lock);
-            $lock = json_decode($lock, true);
-        } else {
-            $lock = [];
-        }
+        $lock = $this->getLock();
 
         if ($this->option('force')) {
-            foreach ($lock as $name => $fileName) {
-                $this->files->delete(\database_path('migrations/' . $fileName));
-            }
+            $fileNames = array_map(function (string $fileName) {
+                return \database_path('migrations/' . $fileName);
+            }, array_values($lock));
 
+            $this->files->delete($fileNames);
             $lock = [];
         }
 
@@ -73,6 +67,19 @@ class ExodusCommand extends Command
         // Save lock
         $content = json_encode($lock, JSON_PRETTY_PRINT);
         $this->files->put(database_path('migrations.lock'), $content);
+    }
+
+    protected function getLock()
+    {
+        $path = database_path('migrations.lock');
+
+        if ($this->files->exists($path)) {
+            $contents = $this->files->get($path);
+
+            return json_decode($contents, true);
+        }
+
+        return [];
     }
 
     protected function getFileName(int $time, string $name)
