@@ -3,8 +3,7 @@ namespace Eyf\Exodus;
 
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
-use Illuminate\Support\Str;
-use Noodlehaus\Config;
+use Symfony\Component\Yaml\Yaml;
 
 use Eyf\Exodus\Exodus;
 
@@ -25,9 +24,7 @@ class ExodusCommand extends Command
 
     public function handle()
     {
-        $stub = $this->files->get(__DIR__ . '/stubs/migration.stub');
-
-        $migrations = $this->loadFile();
+        $migrations = Yaml::parseFile(database_path("migrations.yaml"));
         $migrations = $this->exodus->parse($migrations);
 
         // Lock file
@@ -41,15 +38,15 @@ class ExodusCommand extends Command
         }
 
         if ($this->option('force')) {
-            $fileNames = array_map(function ($fileName) {
-                return \database_path('migrations/' . $fileName);
-            }, array_values($lock));
+            foreach ($lock as $name => $fileName) {
+                $this->files->delete(\database_path('migrations/' . $fileName));
+            }
 
-            $this->files->delete($fileNames);
             $lock = [];
         }
 
         $time = time();
+        $stub = $this->files->get(__DIR__ . '/stubs/migration.stub');
 
         foreach ($migrations as $migration) {
             $content = $stub;
@@ -81,32 +78,5 @@ class ExodusCommand extends Command
     protected function getFileName(int $time, string $name)
     {
         return date('Y_m_d_His', $time) . '_' . $name . '.php';
-    }
-
-    protected function loadFile()
-    {
-        $exts = ['yaml', 'json', 'php', 'yml'];
-        $file = null;
-
-        foreach ($exts as $ext) {
-            $file = database_path("migrations.{$ext}");
-
-            if ($this->files->exists($file)) {
-                break;
-            } else {
-                $file = null;
-            }
-        }
-
-        if (!$file) {
-            $exts = implode('|', $exts);
-
-            $this->error("No database/migrations.({$exts}) file found");
-            die();
-        }
-
-        $config = Config::load($file);
-
-        return $config->all();
     }
 }
