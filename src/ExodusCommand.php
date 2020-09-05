@@ -31,11 +31,7 @@ class ExodusCommand extends Command
         $lock = $this->getLock();
 
         if ($this->option('force')) {
-            $fileNames = array_map(function (string $fileName) {
-                return \database_path('migrations/' . $fileName);
-            }, array_values($lock));
-
-            $this->files->delete($fileNames);
+            $this->deleteFiles(array_values($lock));
             $lock = [];
         }
 
@@ -80,6 +76,15 @@ class ExodusCommand extends Command
         }
 
         return [];
+    }
+
+    protected function deleteFiles(array $fileNames)
+    {
+        $filePaths = array_map(function (string $fileName) {
+            return \database_path('migrations/' . $fileName);
+        }, $fileNames);
+
+        $this->files->delete($filePaths);
     }
 
     protected function getFileName(int $time, string $name)
