@@ -1,5 +1,6 @@
 # laravel-exodus
-Exodus helps you write Laravel migrations as an `array` (think YAML).
+
+Converts YAML migrations to files.
 
 ## Install
 
@@ -9,24 +10,22 @@ composer require eyf/laravel-exodus
 
 ## Usage
 
-### Step 1: Create `database/migrations.(yaml|json)` file
+### Step 1: Create `database/migrations.yaml` file
 
-_Note_: If you choose to use YAML format (and you're right) you must `composer require symfony/yaml`.
-
-Let's write the migrations for an hypothetical `posts` table:
+Let's write some hypothetical `posts` table:
 
 ```yaml
 # database/migrations.yaml
 
 posts:
-  id: true
-  timestamps: true
-  softDeletes: true
-  slug: string.unique
-  title: string
-  content: text
-  excerpt: string.nullable
-  author_id: foreignId.constrained('users')
+    id: true
+    timestamps: true
+    softDeletes: true
+    slug: string.unique
+    title: string
+    content: text
+    excerpt: string.nullable
+    author_id: foreignId.constrained('users')
 ```
 
 ### Step 2: Make migrations (command)
@@ -89,7 +88,7 @@ Any column can be written fluently exactly like in the Laravel migration syntax.
 
 ```yaml
 my_table:
-  my_column_name: string(50).nullable.unique
+    my_column_name: string(50).nullable.unique
 ```
 
 ### Special column
@@ -100,9 +99,9 @@ Since these column types dont need a column name (name is in convention), just s
 
 ```yaml
 my_table:
-  id: true
-  timestamps: true
-  softDeletes: true
+    id: true
+    timestamps: true
+    softDeletes: true
 ```
 
 ### `add`/`remove` column migrations
@@ -115,15 +114,15 @@ Exodus provides a short syntaxt to deal with those:
 my_table:
   id: true
   # ...
-  
+
 add@my_table
   some_column: smallInteger.nullable
-  
+
 another_table:
   id: true
   title: string.unique
   # ...
-  
+
 # more migrations...
 
 remove@another_table
@@ -138,13 +137,13 @@ For generating a pivot table automatically, just use two table names:
 
 ```yaml
 users:
-  id: true
-  name: string
-  
+    id: true
+    name: string
+
 posts:
-  id: true
-  title: string
-  
+    id: true
+    title: string
+
 "@users @posts": []
 ```
 
@@ -159,8 +158,14 @@ class CreatePostUserPivotTable extends Migration
     public function up()
     {
         Schema::create('post_user', function (Blueprint $table) {
-            $table->foreignId('post_id')->index()->constrained();
-            $table->foreignId('user_id')->index()->constrained();
+            $table
+                ->foreignId('post_id')
+                ->index()
+                ->constrained();
+            $table
+                ->foreignId('user_id')
+                ->index()
+                ->constrained();
             $table->primary(['post_id', 'user_id']);
         });
     }
@@ -176,24 +181,24 @@ You can even provide more columns to the pivot as normal:
 
 ```yaml
 "@users @posts":
-  timestamps: true
-  approved_by: foreignId.nullable.constrained('users')
-  approved_at: timestamp.nullable
+    timestamps: true
+    approved_by: foreignId.nullable.constrained('users')
+    approved_at: timestamp.nullable
 ```
 
 ### Custom migration
 
-All of the above migrations can be written with this default syntax. All of the above are just shortcuts to a "normal" migration syntax:
+All the above migrations can be written with this default syntax. All the above migrations are just shortcuts to the "normal" migration syntax:
 
 ```yaml
 my_custom_migration:
-  table: some_table_name
-  
-  up:
-    column_name: string.unique
-    another_name: boolean
-    
-  down:
-    column_name: dropColumn
-    another_name: dropColumn
+    table: some_table_name
+
+    up:
+        column_name: string.unique
+        another_name: boolean
+
+    down:
+        column_name: dropColumn
+        another_name: dropColumn
 ```
