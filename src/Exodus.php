@@ -187,8 +187,8 @@ class Exodus
 
         // Up schema
         $pivot = [];
-        $pivot["{$models[0]}_id"] = 'foreignId.index.constrained';
-        $pivot["{$models[1]}_id"] = 'foreignId.index.constrained';
+        $pivot["{$models[0]}_id"] = "foreignId.constrained.onDelete('cascade')";
+        $pivot["{$models[1]}_id"] = "foreignId.constrained.onDelete('cascade')";
         $pivot["primary(['{$models[0]}_id', '{$models[1]}_id'])"] = true;
 
         $up = $this->getSchema('create', $table, array_merge($pivot, $columns));
