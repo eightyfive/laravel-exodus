@@ -21,7 +21,7 @@ posts:
     id: true
     timestamps: true
     softDeletes: true
-    slug: string.unique
+    slug: string(100).unique
     title: string
     content: text
     excerpt: string.nullable
