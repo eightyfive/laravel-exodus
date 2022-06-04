@@ -1,6 +1,6 @@
 # laravel-exodus
 
-Converts YAML migrations to files.
+Converts YAML to actual Laravel migration files.
 
 ## Install
 
@@ -12,7 +12,7 @@ composer require eyf/laravel-exodus
 
 ### Step 1: Create `database/migrations.yaml` file
 
-Let's write some hypothetical `posts` table:
+Define a `posts` table:
 
 ```yaml
 # database/migrations.yaml
@@ -50,26 +50,26 @@ Exodus is a DEV package, it is meant to ease / speed up development time.
 
 A normal workflow while DEV'ing could be:
 
-1. Create `migrations.yaml` file
+1. Create `migrations.yaml` file (Add a `posts` table)
 2. `make:migrations`
 3. `migrate`
-4. Edit `migrations.yaml` file
+4. Edit `migrations.yaml` file (Add a `users` table)
 5. `make:migrations`
 6. `migrate:refresh (--seed)`
 7. Edit `migrations.yaml` file
 8. ... (Repeat)
 
-### `migrations.lock` file
+### The `migrations.lock` file
 
-As you may have noticed if you ran a similar example as above, the migration file names don't change between several `make:migrations` commands.
+By default the migration file names won't change between multiple `make:migrations` runs.
 
-This is because Exodus keeps track of file names in the `database/migrations.lock` file (to commit in your repository). While in DEV you want to iterate fast through different table schemas but do not want to create a new migration file for every column change.
+This is because Exodus keeps track of the initial migration file name in `database/migrations.lock` (to commit in your repository).
 
-_Note_: When you edit a YAML migration, you obviously need to run `migrate:refresh (--seed)` for the changes to be reflected in your database.
+This makes sure `git` sees the edits in the same migration file throughout the whole DEV.
 
 ### The `force` option
 
-Sometimes you may need to bypass the `migrations.lock` file. For example when you want to change table order creation.
+Sometimes you may want to bypass the `migrations.lock` file (For example when you want to change the table order creation).
 
 ```bash
 php artisan make:migrations --force
@@ -84,7 +84,7 @@ What happens:
 
 ### Column
 
-Any column can be written fluently exactly like in the Laravel migration syntax. In fact Exodus is just a light translator of an `array` to the PHP syntax.
+Any column can be written fluently exactly like in the Laravel migration syntax. In fact Exodus is just a light translator of a "dot notation" `array` to the actual PHP syntax.
 
 ```yaml
 my_table:
@@ -95,7 +95,7 @@ my_table:
 
 Special column types are the "sugar" methods provided by Laravel for a better developer experience: `id()`, `timestamps()`, `softDeletes()`, `rememberToken()`, etc...
 
-Since these column types dont need a column name (name is in convention), just specify `true` as their value:
+Since these column types don't have a column name (name is in the convention), just specify `true` as their value:
 
 ```yaml
 my_table:
@@ -104,36 +104,9 @@ my_table:
     softDeletes: true
 ```
 
-### `add`/`remove` column migrations
-
-When your schema is stable and you have already deployed it to production, it may be time to add or remove columns from tables.
-
-Exodus provides a short syntaxt to deal with those:
-
-```yaml
-my_table:
-  id: true
-  # ...
-
-add@my_table
-  some_column: smallInteger.nullable
-
-another_table:
-  id: true
-  title: string.unique
-  # ...
-
-# more migrations...
-
-remove@another_table
-  title: string.unique
-```
-
-_Note_: In a `remove` migration, you still need to provide the full `column` type for the `down` side of the migration (revert / rollback).
-
 ### Pivot tables
 
-For generating a pivot table automatically, just use two table names:
+For generating a pivot table, just use two table names as follow:
 
 ```yaml
 users:
@@ -147,7 +120,7 @@ posts:
 "@users @posts": []
 ```
 
-This will create the following pivot migration file (redacted for clarity):
+This will create the following pivot migration file:
 
 ```php
 <?php
@@ -157,27 +130,27 @@ class CreatePostUserPivotTable extends Migration
 {
     public function up()
     {
-        Schema::create('post_user', function (Blueprint $table) {
+        Schema::create("post_user", function (Blueprint $table) {
             $table
-                ->foreignId('post_id')
+                ->foreignId("post_id")
                 ->index()
                 ->constrained();
             $table
-                ->foreignId('user_id')
+                ->foreignId("user_id")
                 ->index()
                 ->constrained();
-            $table->primary(['post_id', 'user_id']);
+            $table->primary(["post_id", "user_id"]);
         });
     }
 
     public function down()
     {
-        Schema::dropIfExists('post_user');
+        Schema::dropIfExists("post_user");
     }
 }
 ```
 
-You can even provide more columns to the pivot as normal:
+You can even provide more columns to the pivot table as normal:
 
 ```yaml
 "@users @posts":
@@ -186,19 +159,14 @@ You can even provide more columns to the pivot as normal:
     approved_at: timestamp.nullable
 ```
 
-### Custom migration
+## Phylosophy
 
-All the above migrations can be written with this default syntax. All the above migrations are just shortcuts to the "normal" migration syntax:
+This package aims at speedind up development time. It is not meant to be used after you have launched to production. In fact the package does not provide a way to run migrations for adding or removing columns (it used to).
 
-```yaml
-my_custom_migration:
-    table: some_table_name
+This is by choice.
 
-    up:
-        column_name: string.unique
-        another_name: boolean
+While DEV'ing you should edit the `migrations.yaml` file as much as you want and run `migrate:refresh (--seed)` as often as possible. "This is the way".
 
-    down:
-        column_name: dropColumn
-        another_name: dropColumn
-```
+By the time you are happy with your Schema, you must have launched in production, and then only you may create normal Laravel migration files for adding or removing column(s) in your tables. This is where the job of this package ends.
+
+TODO: Implement safety guard making sure `exodus` cannot be run if it detects more migrations files than in `migrations.lock`.
