@@ -2,14 +2,14 @@
 # yarn lockfile v1
 
 
-"@prettier/plugin-php@^0.14.0":
-  version "0.14.0"
-  resolved "https://registry.yarnpkg.com/@prettier/plugin-php/-/plugin-php-0.14.0.tgz#299d4dab3a6943fedf3db78eadb07debc9a78a0a"
-  integrity sha512-aUHD08hly/mBFMZlQbXZoA+k4DixiWZACLzT4Mz90qK6nlkw9TbPaby11m8OIwXcyUQRW6BeZ6hk209TbPxraQ==
+"@prettier/plugin-php@^0.18.7":
+  version "0.18.7"
+  resolved "https://registry.yarnpkg.com/@prettier/plugin-php/-/plugin-php-0.18.7.tgz#16934daa2cd55dd3d928c2ea952c383d1907ca79"
+  integrity sha512-Fz38XU4e4dxtGkpoxcNJBug0UOjdPMOAbAzsQWkh3suHW/qyRtRv3LaQVtdLghdRSrbLhTV59TS2+9Wv1sEmrg==
   dependencies:
     linguist-languages "^7.5.1"
-    mem "^6.0.1"
-    php-parser "3.0.0"
+    mem "^8.0.0"
+    php-parser "3.1.0-beta.9"
 
 linguist-languages@^7.5.1:
   version "7.9.0"
@@ -23,30 +23,30 @@ map-age-cleaner@^0.1.3:
   dependencies:
     p-defer "^1.0.0"
 
-mem@^6.0.1:
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/mem/-/mem-6.1.0.tgz#846eca0bd4708a8f04b9c3f3cd769e194ae63c5c"
-  integrity sha512-RlbnLQgRHk5lwqTtpEkBTQ2ll/CG/iB+J4Hy2Wh97PjgZgXgWJWrFF+XXujh3UUVLvR4OOTgZzcWMMwnehlEUg==
+mem@^8.0.0:
+  version "8.1.1"
+  resolved "https://registry.yarnpkg.com/mem/-/mem-8.1.1.tgz#cf118b357c65ab7b7e0817bdf00c8062297c0122"
+  integrity sha512-qFCFUDs7U3b8mBDPyz5EToEKoAkgCzqquIgi9nkkR9bixxOVOre+09lbuH7+9Kn2NFpm56M3GUWVbU2hQgdACA==
   dependencies:
     map-age-cleaner "^0.1.3"
-    mimic-fn "^3.0.0"
+    mimic-fn "^3.1.0"
 
-mimic-fn@^3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/mimic-fn/-/mimic-fn-3.0.0.tgz#76044cfa8818bbf6999c5c9acadf2d3649b14b4b"
-  integrity sha512-PiVO95TKvhiwgSwg1IdLYlCTdul38yZxZMIcnDSFIBUm4BNZha2qpQ4GpJ++15bHoKDtrW2D69lMfFwdFYtNZQ==
+mimic-fn@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/mimic-fn/-/mimic-fn-3.1.0.tgz#65755145bbf3e36954b949c16450427451d5ca74"
+  integrity sha512-Ysbi9uYW9hFyfrThdDEQuykN4Ey6BuwPD2kpI5ES/nFTDn/98yxYNLZJcgUAKPT/mcrLLKaGzJR9YVxJrIdASQ==
 
 p-defer@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/p-defer/-/p-defer-1.0.0.tgz#9f6eb182f6c9aa8cd743004a7d4f96b196b0fb0c"
   integrity sha1-n26xgvbJqozXQwBKfU+WsZaw+ww=
 
-php-parser@3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/php-parser/-/php-parser-3.0.0.tgz#7e0abef4941cabbf10f25f1445bca0f758f5102f"
-  integrity sha512-WqGNf8Y5LBOXKJz9eKMwxjqfJ7KnwVU7DH3ebPTaOLlPtVrig++zG8KoOXywY9V9jQxY+wOY0EtC/e+wamaxsQ==
+php-parser@3.1.0-beta.9:
+  version "3.1.0-beta.9"
+  resolved "https://registry.yarnpkg.com/php-parser/-/php-parser-3.1.0-beta.9.tgz#f7a57c01d8483cb1401c516b797c610d2e91823f"
+  integrity sha512-cGVXw3IRbA5zwO3nnp3yKQhCsF4kZqodunlzaqK/xw9AhXhBazpmkxcazv//b430IVVYrt0UzH5kc0JMGg9t3A==
 
-prettier@^2.0.5:
-  version "2.0.5"
-  resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.0.5.tgz#d6d56282455243f2f92cc1716692c08aa31522d4"
-  integrity sha512-7PtVymN48hGcO4fGjybyBSIWDsLU4H4XlvOHfq91pz9kkGlonzwTfYkaIEwiRg/dAJF9YlbsduBAgtYLi+8cFg==
+prettier@^2.6.2:
+  version "2.6.2"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.6.2.tgz#e26d71a18a74c3d0f0597f55f01fb6c06c206032"
+  integrity sha512-PkUpF+qoXTqhOeWL9fu7As8LXsIUZ1WYaJiY/a7McAQzxjk82OF0tibkFXVCDImZtWxbvojFjerkiLb0/q8mew==
