@@ -9,38 +9,38 @@ use Eyf\Exodus\Exodus;
 
 class ExodusCommand extends Command
 {
-    protected $signature = 'make:migrations {--force}';
-    protected $description = 'Make migrations files based on `database/migrations.yaml` file';
+    protected $signature = "make:migrations {--force}";
+    protected $description = "Make migrations files based on `database/migrations.yaml` file";
 
     public function handle(Exodus $exodus, Filesystem $files)
     {
         // Get lock
-        $lock = $this->getLock(database_path('migrations.lock'), $files);
+        $lock = $this->getLock(database_path("migrations.lock"), $files);
 
-        if ($this->option('force')) {
+        if ($this->option("force")) {
             $this->deleteFiles(array_values($lock), $files);
             $lock = [];
         }
 
-        // Parse migrations definition
-        $definition = Yaml::parseFile(database_path('migrations.yaml'));
-        $migrations = $exodus->parse($definition);
+        // Parse migrations
+        $tables = Yaml::parseFile(database_path("migrations.yaml"));
+        $migrations = $exodus->parse($tables);
 
         $time = time();
-        $stub = $files->get(__DIR__ . '/stubs/migration.stub');
+        $stub = $files->get(__DIR__ . "/stubs/migration.stub");
 
         foreach ($migrations as $migration) {
             $contents = $stub;
             $contents = str_replace(
-                '{{class}}',
-                $migration['class'],
+                "{{class}}",
+                $migration["class"],
                 $contents
             );
 
-            $contents = str_replace('{{up}}', $migration['up'], $contents);
-            $contents = str_replace('{{down}}', $migration['down'], $contents);
+            $contents = str_replace("{{up}}", $migration["up"], $contents);
+            $contents = str_replace("{{down}}", $migration["down"], $contents);
 
-            $name = $migration['name'];
+            $name = $migration["name"];
 
             if (isset($lock[$name])) {
                 $fileName = $lock[$name];
@@ -52,12 +52,12 @@ class ExodusCommand extends Command
             }
 
             // Save migration file
-            $files->put(database_path('migrations/' . $fileName), $contents);
+            $files->put(database_path("migrations/" . $fileName), $contents);
         }
 
         // Save lock
         $files->put(
-            database_path('migrations.lock'),
+            database_path("migrations.lock"),
             json_encode($lock, JSON_PRETTY_PRINT)
         );
     }
@@ -76,7 +76,7 @@ class ExodusCommand extends Command
     protected function deleteFiles(array $fileNames, Filesystem $files)
     {
         $filePaths = array_map(function (string $fileName) {
-            return database_path('migrations/' . $fileName);
+            return database_path("migrations/" . $fileName);
         }, $fileNames);
 
         $files->delete($filePaths);
@@ -84,6 +84,6 @@ class ExodusCommand extends Command
 
     protected function makeFileName(int $time, string $name)
     {
-        return date('Y_m_d_His', $time) . '_' . $name . '.php';
+        return date("Y_m_d_His", $time) . "_" . $name . ".php";
     }
 }

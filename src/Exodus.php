@@ -5,157 +5,42 @@ use Illuminate\Support\Str;
 
 class Exodus
 {
-    const SCHEMA = "Schema::%s('%s', function (Blueprint \$table) {";
-    const SCHEMA_DROP = "Schema::dropIfExists('%s')";
-
-    public function parse(array $migrations)
+    public function parse(array $tables)
     {
-        $normalized = [];
+        $migrations = [];
 
-        foreach ($migrations as $name => $migration) {
-            list($action, $table) = $this->splitName($name);
-
-            if ($this->isPivot($name)) {
-                $normalized[] = $this->getPivotSchema(
-                    $this->getPivotTables($name),
-                    $migration
-                );
-            } elseif ($this->isCustom($migration)) {
-                $normalized[] = $this->getCustomSchema(
-                    $name,
-                    $migration['table'],
-                    $migration['up'],
-                    $migration['down']
-                );
-            } elseif ($action) {
-                $normalized[] = $this->getActionSchema(
-                    $action,
-                    $table,
-                    $migration
+        foreach ($tables as $tableName => $columns) {
+            if ($this->isPivot($tableName)) {
+                $migrations[] = $this->buildPivotMigration(
+                    $this->getPivotTableNames($tableName),
+                    $columns
                 );
             } else {
-                $normalized[] = $this->getCreateSchema($table, $migration);
+                $migrations[] = $this->buildCreateMigration(
+                    $tableName,
+                    $columns
+                );
             }
         }
 
-        return $normalized;
+        return $migrations;
     }
 
-    protected function splitName(string $name)
+    protected function buildCreateMigration(string $tableName, array $columns)
     {
-        if (\strpos($name, '@') === false) {
-            return [null, $name];
-        }
+        // Up migration
+        $up = $this->buildSchemaUp($tableName, $columns);
 
-        $action = \explode('@', $name);
+        // Down migration
+        $down = $this->buildSchemaDown($tableName);
 
-        if (count($action) !== 2) {
-            return [null, $name];
-        }
-
-        $valid = $action[0] === 'add' || $action[0] === 'remove';
-
-        if (!$valid) {
-            return [null, $name];
-        }
-
-        return $action;
-    }
-
-    protected function isCustom(array $migration)
-    {
-        return count($migration) === 3 &&
-            isset($migration['table']) &&
-            isset($migration['up']) &&
-            isset($migration['down']);
-    }
-
-    protected function getCreateSchema(string $table, array $columns)
-    {
-        // Up schema
-        $up = $this->getSchema('create', $table, $columns);
-
-        // Down schema
-        $down = $this->getLine(sprintf(static::SCHEMA_DROP, $table));
-
-        $name = 'create_' . $table . '_table';
+        $migrationName = "create_" . $tableName . "_table";
 
         return [
-            'name' => $name,
-            'class' => $this->getClassName($name),
-            'up' => $up,
-            'down' => $down,
-        ];
-    }
-
-    protected function getActionSchema(
-        string $action,
-        string $table,
-        array $columns
-    ) {
-        $drops = $this->getDropColumns($columns);
-
-        $up = $this->getSchema(
-            'table',
-            $table,
-            $action === 'add' ? $columns : $drops
-        );
-
-        $down = $this->getSchema(
-            'table',
-            $table,
-            $action === 'add' ? $drops : $columns
-        );
-
-        // Migration name
-        $name = array_merge([$action], array_keys($columns), [
-            $action === 'add' ? 'to' : 'from',
-            $table,
-            'table',
-        ]);
-
-        $name = \implode('_', $name);
-
-        return [
-            'name' => $name,
-            'class' => $this->getClassName($name),
-            'up' => $up,
-            'down' => $down,
-        ];
-    }
-
-    protected function getDropColumns($columns)
-    {
-        $drops = [];
-
-        foreach ($columns as $name => $modifiers) {
-            if (strpos($modifiers, 'foreignId') !== false) {
-                $drops[$name] = 'dropForeign';
-            } else {
-                $drops[$name] = 'dropColumn';
-            }
-        }
-
-        return $drops;
-    }
-
-    protected function getCustomSchema(
-        string $name,
-        string $table,
-        array $up,
-        array $down
-    ) {
-        // Up schema
-        $up = $this->getSchema('table', $table, $up);
-
-        // Down schema
-        $down = $this->getSchema('table', $table, $down);
-
-        return [
-            'name' => $name,
-            'class' => $this->getClassName($name),
-            'up' => $up,
-            'down' => $down,
+            "name" => $migrationName,
+            "class" => $this->getClassName($migrationName),
+            "up" => $up,
+            "down" => $down,
         ];
     }
 
@@ -164,118 +49,149 @@ class Exodus
         return preg_match("/@\w+\s@\w+/", $name);
     }
 
-    protected function getPivotTables(string $name)
+    protected function getPivotTableNames(string $name)
     {
-        $tables = \explode(' ', $name);
-        $tables = array_map(function ($table) {
-            return \str_replace('@', '', $table);
-        }, $tables);
+        $tableNames = \explode(" ", $name);
+        $tableNames = array_map(function ($table) {
+            return \str_replace("@", "", $table);
+        }, $tableNames);
 
-        \sort($tables);
+        \sort($tableNames);
 
-        return $tables;
+        return $tableNames;
     }
 
-    protected function getPivotSchema(array $tables, array $columns)
+    protected function buildPivotMigration(array $tableNames, array $columns)
     {
         // Table name
-        $models = array_map(function ($name) {
+        $singularNames = array_map(function ($name) {
             return Str::singular($name);
-        }, $tables);
+        }, $tableNames);
 
-        $table = \implode('_', $models);
+        $tableName = \implode("_", $singularNames);
 
-        // Up schema
-        $pivot = [];
-        $pivot["{$models[0]}_id"] = "foreignId.constrained.onDelete('cascade')";
-        $pivot["{$models[1]}_id"] = "foreignId.constrained.onDelete('cascade')";
-        $pivot["primary(['{$models[0]}_id', '{$models[1]}_id'])"] = true;
+        // Up migration
+        $pivotColumns = [];
 
-        $up = $this->getSchema('create', $table, array_merge($pivot, $columns));
+        $pivotColumns["{$singularNames[0]}_id"] =
+            "foreignId.constrained.onDelete('cascade')";
 
-        // Down schema
-        $down = $this->getLine(sprintf(static::SCHEMA_DROP, $table));
+        $pivotColumns["{$singularNames[1]}_id"] =
+            "foreignId.constrained.onDelete('cascade')";
 
-        $name = 'create_' . $table . '_pivot_table';
+        $pivotColumns[
+            "primary(['{$singularNames[0]}_id', '{$singularNames[1]}_id'])"
+        ] = true;
+
+        $up = $this->buildSchemaUp(
+            $tableName,
+            array_merge($pivotColumns, $columns)
+        );
+
+        // Down migration
+        $down = $this->buildSchemaDown($tableName);
+
+        $migrationName = "create_" . $tableName . "_pivot_table";
 
         return [
-            'name' => $name,
-            'class' => $this->getClassName($name),
-            'up' => $up,
-            'down' => $down,
+            "name" => $migrationName,
+            "class" => $this->getClassName($migrationName),
+            "up" => $up,
+            "down" => $down,
         ];
+    }
+
+    protected function buildSchemaUp(string $tableName, array $columns): string
+    {
+        $schemaLines = $this->parseColumns($columns);
+
+        // Opening line
+        array_unshift(
+            $schemaLines,
+            sprintf(
+                "Schema::create('%s', function (Blueprint \$table) {",
+                $tableName
+            )
+        );
+
+        // Closing line
+        array_push($schemaLines, $this->buildLine("})", 2));
+
+        return implode(PHP_EOL, $schemaLines);
+    }
+
+    protected function buildSchemaDown(string $tableName): string
+    {
+        return $this->buildLine(
+            sprintf("Schema::dropIfExists('%s')", $tableName)
+        );
     }
 
     protected function parseColumns(array $columns)
     {
-        $normalized = [];
+        $schemaLines = [];
 
-        foreach ($columns as $name => $modifiers) {
-            $normalized[] = $this->parseColumn($name, $modifiers);
+        foreach ($columns as $columnName => $definition) {
+            $schemaLines[] = $this->parseColumn($columnName, $definition);
         }
 
-        return $normalized;
+        return $schemaLines;
     }
 
-    protected function parseColumn(string $name, $modifiers)
+    protected function parseColumn(string $columnName, $definition): string
     {
-        if ($modifiers === true) {
-            return $this->getLine(
-                '$table->' . (Str::contains($name, '(') ? $name : $name . '()'),
+        if ($definition === true) {
+            return $this->buildLine(
+                '$table->' .
+                    (Str::contains($columnName, "(")
+                        ? $columnName
+                        : $columnName . "()"),
                 3
             );
         }
 
-        if (!is_array($modifiers)) {
-            $modifiers = \explode('.', $modifiers);
+        if (!is_array($definition)) {
+            $definition = \explode(".", $definition);
         }
 
-        // Column type
-        $type = array_shift($modifiers);
+        // 1- Column type
+        $columnType = array_shift($definition);
 
-        if ($type === 'dropForeign') {
-            $type = $type . "(['" . $name . "'])";
-        } elseif (Str::contains($type, '(')) {
-            $type = \str_replace('(', "('" . $name . "', ", $type);
+        if (Str::contains($columnType, "(")) {
+            $columnType = \str_replace(
+                "(",
+                "('" . $columnName . "', ",
+                $columnType
+            );
         } else {
-            $type = $type . "('" . $name . "')";
+            $columnType = $columnType . "('" . $columnName . "')";
         }
 
-        // Column definition
-        $column = array_map(function ($spec) {
-            if (!Str::contains($spec, '(')) {
-                return $spec . '()';
+        // 2- Column modifiers
+        $modifiers = array_map(function ($modifier) {
+            if (!Str::contains($modifier, "(")) {
+                return $modifier . "()";
             }
 
-            return $spec;
-        }, $modifiers);
+            return $modifier;
+        }, $definition);
 
-        array_unshift($column, $type);
-        array_unshift($column, '$table');
+        $columnLine = '$table->' . $columnType;
 
-        return $this->getLine(implode('->', $column), 3);
+        if (count($modifiers)) {
+            $columnLine .= "->" . implode("->", $modifiers);
+        }
+
+        return $this->buildLine($columnLine, 3);
     }
 
-    protected function getSchema(string $action, string $table, array $columns)
+    protected function buildLine(string $line, int $tabs = 0): string
     {
-        $lines = $this->parseColumns($columns);
-
-        // Opening line
-        array_unshift($lines, sprintf(static::SCHEMA, $action, $table));
-
-        // Closing line
-        array_push($lines, $this->getLine("})", 2));
-
-        return implode(PHP_EOL, $lines);
+        return str_repeat(" ", $tabs * 4) . $line . ";";
     }
 
-    protected function getClassName(string $name)
+    protected function getClassName(string $migrationName)
     {
-        return ucwords(Str::camel($name));
-    }
-
-    protected function getLine(string $line, int $tabs = 0)
-    {
-        return str_repeat(' ', $tabs * 4) . $line . ';';
+        return ucwords(Str::camel($migrationName));
     }
 }
