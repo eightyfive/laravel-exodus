@@ -150,9 +150,7 @@ class Exodus
             );
         }
 
-        if (!is_array($definition)) {
-            $definition = \explode(".", $definition);
-        }
+        $definition = \explode(".", $definition);
 
         // 1- Column type
         $columnType = array_shift($definition);
@@ -167,22 +165,20 @@ class Exodus
             $columnType = $columnType . "('" . $columnName . "')";
         }
 
+        $schemaLine = '$table->' . $columnType;
+
         // 2- Column modifiers
-        $modifiers = array_map(function ($modifier) {
-            if (!Str::contains($modifier, "(")) {
-                return $modifier . "()";
-            }
+        if (count($definition)) {
+            $modifiers = array_map(function ($modifier) {
+                return Str::contains($modifier, "(")
+                    ? $modifier
+                    : $modifier . "()";
+            }, $definition);
 
-            return $modifier;
-        }, $definition);
-
-        $columnLine = '$table->' . $columnType;
-
-        if (count($modifiers)) {
-            $columnLine .= "->" . implode("->", $modifiers);
+            $schemaLine .= "->" . implode("->", $modifiers);
         }
 
-        return $this->buildLine($columnLine, 3);
+        return $this->buildLine($schemaLine, 3);
     }
 
     protected function buildLine(string $line, int $tabs = 0): string
