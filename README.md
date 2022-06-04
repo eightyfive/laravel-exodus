@@ -5,7 +5,7 @@ Converts YAML to actual Laravel migration files.
 ## Install
 
 ```bash
-composer require eyf/laravel-exodus
+composer require --dev eyf/laravel-exodus
 ```
 
 ## Usage
