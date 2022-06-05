@@ -10,16 +10,17 @@ use Eyf\Exodus\Exodus;
 class ExodusCommand extends Command
 {
     protected $signature = "make:migrations {--force}";
+
     protected $description = "Make migrations files based on `database/migrations.yaml` file";
 
     public function handle(Exodus $exodus, Filesystem $files)
     {
-        // Get lock
-        $lock = $this->getLock(database_path("migrations.lock"), $files);
+        // Get cache
+        $cache = $this->getCache(database_path("migrations.lock"), $files);
 
         if ($this->option("force")) {
-            $this->deleteFiles(array_values($lock), $files);
-            $lock = [];
+            $this->deleteFiles(array_values($cache), $files);
+            $cache = [];
         }
 
         // Parse migrations
@@ -28,6 +29,8 @@ class ExodusCommand extends Command
 
         $time = time();
         $stub = $files->get(__DIR__ . "/stubs/migration.stub");
+
+        $outputs = [];
 
         foreach ($migrations as $migration) {
             $contents = $stub;
@@ -42,27 +45,55 @@ class ExodusCommand extends Command
 
             $name = $migration["name"];
 
-            if (isset($lock[$name])) {
-                $fileName = $lock[$name];
+            $cached = $cache[$name] ?? null;
+            $contentsHash = hash("md5", $contents);
+
+            if ($cached) {
+                $hasChanged = $contentsHash !== $cached["hash"];
+                $fileName = $cached["file"];
+
+                if ($hasChanged) {
+                    $outputs[] = "Updated {$fileName}";
+                }
             } else {
+                $hasChanged = true;
                 $fileName = $this->makeFileName($time, $name);
                 $time = $time + 1;
 
-                $lock[$name] = $fileName;
+                $cache[$name] = [
+                    "file" => $fileName,
+                    "hash" => $contentsHash,
+                ];
+
+                $outputs[] = "Created {$fileName}";
             }
 
             // Save migration file
-            $files->put(database_path("migrations/" . $fileName), $contents);
+            if ($hasChanged) {
+                $files->put(
+                    database_path("migrations/" . $fileName),
+                    $contents
+                );
+            }
         }
 
-        // Save lock
+        // Save cache
         $files->put(
             database_path("migrations.lock"),
-            json_encode($lock, JSON_PRETTY_PRINT)
+            json_encode($cache, JSON_PRETTY_PRINT)
         );
+
+        // I/O
+        if (count($outputs)) {
+            foreach ($outputs as $output) {
+                $this->info($output);
+            }
+        } else {
+            $this->info("Nothing has changed.");
+        }
     }
 
-    protected function getLock(string $path, Filesystem $files)
+    protected function getCache(string $path, Filesystem $files)
     {
         if ($files->exists($path)) {
             $contents = $files->get($path);
