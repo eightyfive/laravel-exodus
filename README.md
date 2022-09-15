@@ -30,7 +30,7 @@ posts:
 
 ### Step 2: Make migrations (command)
 
-Run Exodus `exodus` command to translate the `yaml` file into actual Laravel migration files:
+Run `exodus` command to translate the `yaml` file into actual Laravel migration files:
 
 ```bash
 php artisan exodus
