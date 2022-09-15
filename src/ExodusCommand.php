@@ -19,7 +19,12 @@ class ExodusCommand extends Command
         $cache = $this->getCache(database_path("migrations.lock"), $files);
 
         if ($this->option("force")) {
-            $this->deleteFiles(array_values($cache), $files);
+            $this->deleteFiles(
+                array_map(function (array $entry) {
+                    return $entry["file"];
+                }, $cache),
+                $files
+            );
             $cache = [];
         }
 
