@@ -16,7 +16,7 @@ class ExodusCommand extends Command
     public function handle(Exodus $exodus, Filesystem $files)
     {
         // Get cache
-        $cache = $this->getCache(database_path("migrations.lock"), $files);
+        $cache = $this->getCache(database_path("exodus.lock"), $files);
 
         if ($this->option("force")) {
             $this->deleteFiles(
@@ -84,7 +84,7 @@ class ExodusCommand extends Command
 
         // Save cache
         $files->put(
-            database_path("migrations.lock"),
+            database_path("exodus.lock"),
             json_encode($cache, JSON_PRETTY_PRINT)
         );
 

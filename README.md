@@ -59,17 +59,17 @@ A normal workflow while DEV'ing could be:
 7. Edit `migrations.yaml` file
 8. ... (Repeat)
 
-### The `migrations.lock` file
+### The `exodus.lock` file
 
 By default the migration file names won't change between multiple `make:migrations` runs.
 
-This is because Exodus keeps track of the initial migration file name in `database/migrations.lock` (to commit in your repository).
+This is because Exodus keeps track of the initial migration file name in `database/exodus.lock` (to commit in your repository).
 
 This makes sure `git` sees the edits in the same migration file throughout the whole DEV.
 
 ### The `force` option
 
-Sometimes you may want to bypass the `migrations.lock` file (For example when you want to change the table order creation).
+Sometimes you may want to bypass the `exodus.lock` file (For example when you want to change the table order creation).
 
 ```bash
 php artisan make:migrations --force
@@ -77,7 +77,7 @@ php artisan make:migrations --force
 
 What happens:
 
-1. All "old" migration files will be deleted (the ones in current `migrations.lock`)
+1. All "old" migration files will be deleted (the ones in current `exodus.lock`)
 2. New migration files will be generated (with newest date in filename)
 
 ## Syntax
@@ -169,4 +169,4 @@ While DEV'ing you should edit the `migrations.yaml` file as much as you want and
 
 By the time you are happy with your Schema, you must have launched in production, and then only you may create normal Laravel migration files for adding or removing column(s) in your tables. This is where the job of this package ends.
 
-TODO: Implement safety guard making sure `exodus` cannot be run if it detects more migrations files than in `migrations.lock`.
+TODO: Implement safety guard making sure `exodus` cannot be run if it detects more migrations files than in `exodus.lock`.
