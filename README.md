@@ -30,10 +30,10 @@ posts:
 
 ### Step 2: Make migrations (command)
 
-Run Exodus `make:migrations` command to translate the `yaml` file into actual Laravel migration files:
+Run Exodus `exodus` command to translate the `yaml` file into actual Laravel migration files:
 
 ```bash
-php artisan make:migrations
+php artisan exodus
 
 Created Migration: 2020_05_05_100005_create_posts_table
 ```
@@ -51,17 +51,17 @@ Exodus is a DEV package, it is meant to ease / speed up development time.
 A normal workflow while DEV'ing could be:
 
 1. Create `migrations.yaml` file (Add a `posts` table)
-2. `make:migrations`
-3. `migrate`
+2. `php artisan exodus`
+3. `php artisan migrate`
 4. Edit `migrations.yaml` file (Add a `users` table)
-5. `make:migrations`
-6. `migrate:refresh (--seed)`
+5. `php artisan exodus`
+6. `php artisan migrate:refresh (--seed)`
 7. Edit `migrations.yaml` file
 8. ... (Repeat)
 
 ### The `exodus.lock` file
 
-By default the migration file names won't change between multiple `make:migrations` runs.
+By default the migration file names won't change between multiple `exodus` runs.
 
 This is because Exodus keeps track of the initial migration file name in `database/exodus.lock` (to commit in your repository).
 
@@ -72,7 +72,7 @@ This makes sure `git` sees the edits in the same migration file throughout the w
 Sometimes you may want to bypass the `exodus.lock` file (For example when you want to change the table order creation).
 
 ```bash
-php artisan make:migrations --force
+php artisan exodus --force
 ```
 
 What happens:

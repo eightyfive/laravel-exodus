@@ -9,7 +9,7 @@ use Eyf\Exodus\Exodus;
 
 class ExodusCommand extends Command
 {
-    protected $signature = "make:migrations {--force}";
+    protected $signature = "exodus {--force}";
 
     protected $description = "Make migrations files based on `database/migrations.yaml` file";
 
