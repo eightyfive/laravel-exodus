@@ -51,10 +51,10 @@ class ExodusCommand extends Command
             $name = $migration["name"];
 
             $cached = $cache[$name] ?? null;
-            $contentsHash = hash("md5", $contents);
+            $fileHash = hash("md5", $contents);
 
             if ($cached) {
-                $hasChanged = $contentsHash !== $cached["hash"];
+                $hasChanged = $fileHash !== $cached["hash"];
                 $fileName = $cached["file"];
 
                 if ($hasChanged) {
@@ -65,16 +65,16 @@ class ExodusCommand extends Command
                 $fileName = $this->makeFileName($time, $name);
                 $time = $time + 1;
 
-                $cache[$name] = [
-                    "file" => $fileName,
-                    "hash" => $contentsHash,
-                ];
-
                 $outputs[] = "Created {$fileName}";
             }
 
             // Save migration file
             if ($hasChanged) {
+                $cache[$name] = [
+                    "file" => $fileName,
+                    "hash" => $fileHash,
+                ];
+
                 $files->put(
                     database_path("migrations/" . $fileName),
                     $contents
