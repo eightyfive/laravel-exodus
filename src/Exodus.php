@@ -150,6 +150,21 @@ class Exodus
             );
         }
 
+        if (is_array($definition)) {
+            $columnNames = array_map(function ($name) {
+                return "'" . $name . "'";
+            }, $definition);
+
+            return $this->buildLine(
+                '$table->' .
+                    $columnName .
+                    "([" .
+                    implode(", ", $columnNames) .
+                    "])",
+                3
+            );
+        }
+
         $definition = \explode(".", $definition);
 
         // 1- Column type
