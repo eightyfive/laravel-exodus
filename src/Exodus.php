@@ -56,8 +56,6 @@ class Exodus
             return \str_replace("@", "", $table);
         }, $tableNames);
 
-        \sort($tableNames);
-
         return $tableNames;
     }
 
